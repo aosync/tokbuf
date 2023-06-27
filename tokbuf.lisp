@@ -53,7 +53,7 @@
   (setf (point self) (pop (points self))))
 
 (defmethod validate ((self tokbuf))
-  "Destroy last TOKBUf checkpoint."
+  "Destroy last TOKBUF checkpoint."
   (pop (points self)))
 
 (defclass charbuf (tokbuf)
