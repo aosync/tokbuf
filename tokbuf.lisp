@@ -5,7 +5,7 @@
     :documentation
     "Amount of tokens read since the beginning.")
    (points
-    :initform '()
+    :initform '(0)
     :accessor points
     :documentation
     "Stack of points at previous checkpoints.")
@@ -13,9 +13,9 @@
     :accessor data
     :documentation
     "Previously read tokens.")
-   (get-op
-    :initarg :get-op
-    :accessor get-op
+   (next-op
+    :initarg :next-op
+    :accessor next-op
     :documentation
     "Function used to fetch the tokens."))
   (:documentation
@@ -31,18 +31,30 @@
 	     :adjustable t
 	     :fill-pointer 0))))
 
-(defmethod fetch ((self tokbuf))
-  "Fetch the next token from the TOKBUF."
-  (if (<
-       (point self)
-       (length (data  self)))
-      (let* ((value (aref (data self) (point self))))
-	(incf (point self))
-	value)
-      (let* ((value (funcall (get-op self))))
-	(vector-push-extend value (data self))
-	(incf (point self))
-	value)))
+(defmethod peek ((self tokbuf))
+  "Peek the next token from the TOKBUF."
+  (with-slots (data point next-op) self
+    (if (<
+	 point
+	 (length data))
+	(let* ((value (aref data point)))
+	  value)
+	(let* ((value (funcall next-op)))
+	  (vector-push-extend value data)
+	  value))))
+
+(defmethod next ((self tokbuf))
+  "Consume the next token from the TOKBUF."
+  (let* ((value (peek self)))
+    (incf (point self))
+    value))
+
+(defmethod region ((self tokbuf))
+  (with-slots (point points data) self
+    (make-array (- point (car points))
+		:element-type (array-element-type data)
+		:displaced-to data
+		:displaced-index-offset (car points))))
 
 (defmethod check ((self tokbuf))
   "Create a checkpoint in the token sequence."
@@ -75,7 +87,14 @@
   (:documentation
    "Specialization of TOKBUF that also keeps track of the line and column numbers of each of the characters read."))
 
-(defmethod fetch :around ((self charbuf))
+(defmethod initialize-instance :after ((self charbuf) &rest rest)
+  (setf (data self)
+	(make-array 0
+		    :adjustable t
+		    :fill-pointer 0
+		    :element-type 'character)))
+
+(defmethod next :around ((self charbuf))
   "Fetch next token. Update line and column."
   (let* ((char (call-next-method)))
     (if (eq char #\linefeed)
