@@ -82,6 +82,15 @@
   "Destroy last TOKBUF checkpoint."
   (pop (points self)))
 
+(defmacro try-next (self &body body)
+  `(progn
+     (check ,self)
+     (let ((token (block nil ,@body)))
+       (if token
+	   (validate ,self)
+	   (rewind   ,self))
+       token)))
+
 (defclass charbuf (tokbuf)
   ((line
     :initform 0
