@@ -1,3 +1,17 @@
+(defpackage #:tokbuf
+  (:use #:cl)
+  (:export
+   #:tokbuf
+   #:peek   
+   #:next
+   #:region
+   #:check
+   #:rewind
+   #:validate
+   #:charbuf))
+
+(in-package #:tokbuf)
+
 (defclass tokbuf ()
   ((point
     :initform 0
@@ -88,6 +102,7 @@
    "Specialization of TOKBUF that also keeps track of the line and column numbers of each of the characters read."))
 
 (defmethod initialize-instance :after ((self charbuf) &rest rest)
+  (declare (ignore rest))
   (setf (data self)
 	(make-array 0
 		    :adjustable t
